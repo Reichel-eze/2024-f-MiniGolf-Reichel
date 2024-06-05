@@ -21,6 +21,12 @@ bart = UnJugador "Bart" "Homero" (UnaHabilidad 25 60)
 todd = UnJugador "Todd" "Ned" (UnaHabilidad 15 80)
 rafa = UnJugador "Rafa" "Gorgory" (UnaHabilidad 10 1)
 
+listaDeJugadores :: [Jugador]
+listaDeJugadores = [bart,todd,rafa]
+
+soloLosNombres :: [Jugador] -> [String]
+soloLosNombres jugadores = map (nombre) jugadores
+
 data Tiro = UnTiro {
   velocidad :: Number,
   precision :: Number,
@@ -261,6 +267,9 @@ paloMasUtilV2 jugador obstaculos = maximoSegun (flip cuantosObstaculosConsecutiv
 -- al finalizar el torneo, se pide retornar la lista de padres que pierden la apuesta por ser el “padre del niño que no ganó”. 
 -- Se dice que un niño ganó el torneo si tiene más puntos que los otros niños.
 
+puntitos :: [(Jugador, Puntos)]
+puntitos = [(bart,10),(todd,7),(rafa,8)]
+
 jugadorDeTorneo = fst           -- primero de la tupla
 puntosDelJugador = snd          -- segundo de la tupla
 
@@ -271,6 +280,27 @@ gano :: [(Jugador, Puntos)] -> (Jugador,Puntos) -> Bool
 gano puntosDeTorneo puntosDeUnJugador 
   = (all ((< puntosDelJugador puntosDeUnJugador) . puntosDelJugador)  
         . filter (/= puntosDeUnJugador)) puntosDeTorneo
+
+--------------------------------- la hice yo (con descomposicion del problema) ---------------------------
+
+pierdenLaApuestaPOSTA :: [(Jugador, Puntos)] -> [String]
+pierdenLaApuestaPOSTA jugadores =  map (padre . jugadorDeTorneo) (losQueNoGanaron jugadores)        
+
+losQueNoGanaron :: [(Jugador, Puntos)] -> [(Jugador, Puntos)]
+losQueNoGanaron jugadores = filter (not . flip ganoPIOLA jugadores) jugadores
+
+ganoPIOLA :: (Jugador,Puntos) -> [(Jugador, Puntos)] -> Bool
+ganoPIOLA jugadorGanador = leGanaATodos jugadorGanador . listaDelRestoDeJugadores jugadorGanador
+
+leGanaATodos :: (Jugador,Puntos) -> [(Jugador, Puntos)] -> Bool
+leGanaATodos jugador jugadores = all (leGana jugador) jugadores  
+
+leGana :: (Jugador,Puntos) -> (Jugador,Puntos) -> Bool
+leGana jugador1 jugador2 = puntosDelJugador jugador1 > puntosDelJugador jugador2
+
+listaDelRestoDeJugadores :: (Jugador,Puntos) -> [(Jugador, Puntos)] -> [(Jugador, Puntos)]
+listaDelRestoDeJugadores jugadorGanador jugadores = filter (/=jugadorGanador) jugadores
+
 
 -- Ejemplos
 
