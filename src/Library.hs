@@ -32,7 +32,10 @@ type Puntos = Number
 -- Funciones útiles
 between n m x = elem x [n .. m]
 
+maximoSegun :: Ord b => (a -> b) -> [a] -> a
 maximoSegun f = foldl1 (mayorSegun f)
+
+mayorSegun :: Ord x => (t -> x) -> (t -> t -> t)       -- :t foldl1 :: (a->a->a) -> [a] -> a
 mayorSegun f a b
   | f a > f b = a
   | otherwise = b
@@ -51,7 +54,7 @@ putter habilidad = UnTiro{
     velocidad = 10,
     precision = precisionJugador habilidad * 2,  -- es el doble de la precision de la habilidad que le doy!! (osea este palo lo que hace es que mi tiro tenga una presicion igual al doble de la presicionDelJugador)
     altura = 0
-}
+}  
 
 -- ii) La madera genera uno de velocidad igual a 100, altura igual a 5 y la mitad de la precisión.
 
@@ -60,7 +63,7 @@ madera habilidad = UnTiro{
     velocidad = 100,
     precision = precisionJugador habilidad `div` 2,
     altura = 5
-}
+}  
 
 -- iii) Los hierros, que varían del 1 al 10 (número al que denominaremos n), 
 -- generan un tiro de velocidad igual a la fuerza multiplicada por n, la precisión dividida por n y una altura de n-3 (con mínimo 0)
@@ -70,7 +73,7 @@ hierro n habilidad = UnTiro{
     velocidad = fuerzaJugador habilidad * n,
     precision = precisionJugador habilidad `div` n,
     altura = max 0 (n-3)  -- una altura de n-3 (con mínimo 0)
-}
+}   
 
 -- b) Definir una constante palos que sea una lista con todos los palos que se pueden usar en el juego
 
@@ -106,9 +109,9 @@ superaVelocidad n tiro = precision tiro > n
 -- type Obstaculo = Tiro -> Tiro (ya no me sirve)
  
 data Obstaculo = UnObstaculo {
-    puedeSupear :: Tiro -> Bool,
+    puedeSuperar :: Tiro -> Bool,
     efectoLuegoDeSuperar :: Tiro -> Tiro 
-}deriving (Show,Eq)
+}   deriving (Show,Eq)
 
 --tunelConRampita :: Obstaculo
 --tunelConRampita tiro 
@@ -181,7 +184,7 @@ tiroDetenido = UnTiro 0 0 0     -- mas facil que el de abajo
 
 intentarSuperarObstaculo :: Obstaculo -> Tiro -> Tiro
 intentarSuperarObstaculo obstaculo tiroOriginal 
-  | puedeSupear obstaculo tiroOriginal = efectoLuegoDeSuperar obstaculo tiroOriginal
+  | puedeSuperar obstaculo tiroOriginal = efectoLuegoDeSuperar obstaculo tiroOriginal
   | otherwise = tiroDetenido
 
 
@@ -192,5 +195,93 @@ palosUtiles :: Jugador -> Obstaculo -> [Palo] -> [Palo]
 palosUtiles jugador obstaculo palos = filter (paloUtil jugador obstaculo) palos
 
 paloUtil :: Jugador -> Obstaculo -> Palo -> Bool
-paloUtil jugador obstaculo palo = puedeSupear obstaculo (golpe jugador palo) 
- 
+paloUtil jugador obstaculo palo = puedeSuperar obstaculo (golpe jugador palo) 
+
+-- b) Saber, a partir de un conjunto de obstáculos y un tiro, cuántos obstáculos consecutivos se pueden superar.
+-- Por ejemplo, para un tiro de velocidad = 10, precisión = 95 y altura = 0, y 
+-- una lista con dos túneles con rampita seguidos de un hoyo, el resultado sería 2 ya que la 
+-- velocidad al salir del segundo túnel es de 40, por ende no supera el hoyo.
+
+tiroA :: Tiro
+tiroA = UnTiro 10 95 0
+
+listaA :: [Obstaculo]
+listaA = [tunelConRampitaV2,tunelConRampitaV2,hoyoV2]
+
+--cuantosObstaculosConsecutivos :: Tiro -> [Obstaculo] -> Number
+--cuantosObstaculosConsecutivos tiro (obs1:obs2:obstaculos)                   -- CASI (MASOMENOS)
+--  | intentarSuperarObstaculo obs1 tiro && intentarSuperarObstaculo obs2 tiro = intentarSuperarObstaculo 
+--  | foldl intentarSuperarObstaculo tiro obstaculos
+
+tiroLuegoDeObstaculos :: Tiro -> [Obstaculo] -> Tiro
+tiroLuegoDeObstaculos tiro obstaculos = foldr intentarSuperarObstaculo tiro obstaculos
+
+cuantosObstaculosConsecutivos :: Tiro -> [Obstaculo] -> Number
+cuantosObstaculosConsecutivos tiro [] = 0         -- si no hay obstaculos entonces hay 0 obstaculos que se pueden superar 
+cuantosObstaculosConsecutivos tiro (obstaculo:obstaculos)
+  | puedeSuperar obstaculo tiro = 1 + cuantosObstaculosConsecutivos (efectoLuegoDeSuperar obstaculo tiro) obstaculos   
+  | otherwise = 0  
+
+-- Explicacion :: le sumo +1 porque el primer obstaculo lo pudo superar, luego hago recursividad   
+  
+--length (osbtaculosSuperados)
+--osbtaculosSuperados :: Tiro -> [Obstaculo] -> [Obstaculo]
+--osbtaculosSuperados tiro () =                                     CASI (ESTABA CERCA=)
+--    | puedeSuperar obs tiro && puedeSuperar
+--filter (flip (puedeSuperar tiro)) obstaculos 
+
+-- c) Definir paloMasUtil que recibe una persona y una lista de obstáculos y 
+-- determina cuál es el palo que le permite superar más obstáculos con un solo tiro.
+
+--paloMasUtil :: Jugador -> [Palo] -> [Obstaculo] -> Palo 
+--paloMasUtil jugador [palo] obstaculos = palo        -- si solo hay un palo en la lista de palos me devuelve ese mismo
+--paloMasUtil jugador (palo1:palo2:palos) obstaculos
+--  | cuantosObstaculosConsecutivos (palo1 (habilidad jugador)) obstaculos < cuantosObstaculosConsecutivos (palo2 (habilidad jugador)) = paloMasUtil jugador (palo2:palos) obstaculos
+--  | otherwise = paloMasUtil jugador (palo1:palos) obstaculos
+
+--maximoSegun :: Ord b => (a -> b) -> [a] -> a
+--maximoSegun f = foldl1 (mayorSegun f)
+
+--mayorSegun :: Ord x => (t -> x) -> (t -> t -> t)       -- :t foldl1 :: (a->a->a) -> [a] -> a
+--mayorSegun f a b
+--  | f a > f b = a
+--  | otherwise = b
+
+-- type Palo = Habilidad -> Tiro
+--palos :: [Palo]
+--palos = [putter , madera] ++ map hierro [1..10]
+
+--golpe :: Jugador -> Palo -> Tiro
+--golpe jugador palo = palo (habilidad jugador)   -- por ej: golpe bart putter
+
+paloMasUtilV2 :: Jugador -> [Obstaculo] -> Palo
+paloMasUtilV2 jugador obstaculos = maximoSegun (flip cuantosObstaculosConsecutivos obstaculos . golpe jugador) palos   
+
+-- 5) Dada una lista de tipo [(Jugador, Puntos)] que tiene la información de cuántos puntos ganó cada niño 
+-- al finalizar el torneo, se pide retornar la lista de padres que pierden la apuesta por ser el “padre del niño que no ganó”. 
+-- Se dice que un niño ganó el torneo si tiene más puntos que los otros niños.
+
+jugadorDeTorneo = fst           -- primero de la tupla
+puntosDelJugador = snd          -- segundo de la tupla
+
+pierdenLaApuesta :: [(Jugador, Puntos)] -> [String]
+pierdenLaApuesta puntosDeTorneo = (map (padre.jugadorDeTorneo) . filter (not . gano puntosDeTorneo)) puntosDeTorneo
+
+gano :: [(Jugador, Puntos)] -> (Jugador,Puntos) -> Bool       
+gano puntosDeTorneo puntosDeUnJugador 
+  = (all ((< puntosDelJugador puntosDeUnJugador) . puntosDelJugador)  
+        . filter (/= puntosDeUnJugador)) puntosDeTorneo
+
+-- Ejemplos
+
+-- gano [(bart,10),(todd,7),(rafa,8)] (bart,10)
+-- True 
+
+-- gano [(bart,10),(todd,10),(rafa,8)] (bart,10)
+-- False 
+
+-- pierdenLaApuesta  [(bart,10),(todd,10),(rafa,8)]          
+-- [ "Homero", "Ned", "Gorgory"]
+
+-- pierdenLaApuesta  [(bart,9),(todd,10),(rafa,8)]          
+-- [ "Homero", "Gorgory"]
